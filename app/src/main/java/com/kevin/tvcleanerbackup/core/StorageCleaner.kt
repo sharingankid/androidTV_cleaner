@@ -25,7 +25,7 @@ class StorageCleaner(private val context: Context) {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        ).map { SuFile(it.absolutePath) as File }.filter { it.exists() }
+        ).map { SuFile(it.absolutePath) }.filter { it.exists() }
     }
 
     /** Taille actuelle du cache propre à cette application (toujours nettoyable). */

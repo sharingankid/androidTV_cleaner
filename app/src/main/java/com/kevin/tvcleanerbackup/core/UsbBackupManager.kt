@@ -39,7 +39,7 @@ class UsbBackupManager(private val context: Context) {
             "Films" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
             "Musique" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
             "Documents" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        ).map { (label, dir) -> label to (dir?.let { SuFile(it.absolutePath) as File }) }
+        ).map { (label, dir) -> label to dir?.let { SuFile(it.absolutePath) } }
     }
 
     /** Calcule le nombre total de fichiers et d'octets à copier, pour la barre de progression. */
