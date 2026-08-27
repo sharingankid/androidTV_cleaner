@@ -1,11 +1,14 @@
 package com.kevin.tvcleanerbackup.ui
 
 import android.Manifest
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -31,9 +34,13 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> onUsbTreeSelected(uri) }
 
-    private val requestStoragePermission = registerForActivityResult(
+    private val requestLegacyStoragePermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* résultat lu via hasStoragePermission() au moment de l'action */ }
+    ) { reportStoragePermissionState() }
+
+    private val requestManageStoragePermission = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { reportStoragePermissionState() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,25 +58,50 @@ class MainActivity : AppCompatActivity() {
         ensureStoragePermission()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // L'octroi de MANAGE_EXTERNAL_STORAGE se fait dans un écran Paramètres
+        // externe : on ne le sait qu'au retour sur l'activité, pas via un callback.
+        reportStoragePermissionState()
+    }
+
     // ---------- Permissions ----------
 
-    private fun requiredPermissions(): Array<String> = if (Build.VERSION.SDK_INT >= 33) {
-        arrayOf(
-            Manifest.permission.READ_MEDIA_IMAGES,
-            Manifest.permission.READ_MEDIA_VIDEO,
-            Manifest.permission.READ_MEDIA_AUDIO
-        )
-    } else {
-        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-    }
-
-    private fun hasStoragePermission(): Boolean = requiredPermissions().all {
-        ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-    }
+    private fun hasStoragePermission(): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Android 11+ : le stockage cloisonné s'applique quel que soit
+            // requestLegacyExternalStorage (qui n'a d'effet que sur Android 10).
+            // Les permissions média granulaires ne couvrent ni les fichiers
+            // résiduels non-média, ni le droit de les supprimer : il faut l'accès
+            // complet "gestion de tous les fichiers".
+            Environment.isExternalStorageManager()
+        } else {
+            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .all { ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+        }
 
     private fun ensureStoragePermission() {
-        if (!hasStoragePermission()) {
-            requestStoragePermission.launch(requiredPermissions())
+        if (hasStoragePermission()) return
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            try {
+                requestManageStoragePermission.launch(intent)
+            } catch (e: ActivityNotFoundException) {
+                requestManageStoragePermission.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+            }
+        } else {
+            requestLegacyStoragePermission.launch(
+                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            )
+        }
+    }
+
+    private fun reportStoragePermissionState() {
+        if (hasStoragePermission()) {
+            log("Autorisation de stockage accordée")
         }
     }
 

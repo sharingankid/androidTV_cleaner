@@ -6,14 +6,17 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
 
-    <!-- Lecture des médias / fichiers pour la sauvegarde -->
+    <!-- Android 9 et moins (pas de stockage cloisonné) : permissions runtime classiques -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
+        android:maxSdkVersion="29" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- Android 11+ : accès complet nécessaire pour scanner/supprimer les fichiers
+         résiduels (.tmp/.log/.bak…) et sauvegarder Documents, hors du périmètre
+         des permissions média granulaires. Accordée manuellement dans les Paramètres. -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
 
     <application
         android:allowBackup="true"
