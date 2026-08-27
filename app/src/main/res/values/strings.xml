@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">TV Cleaner &amp; Backup</string>
+    <string name="title_main">TV Cleaner &amp; Backup</string>
+    <string name="subtitle_main">Sauvegarde vos données importantes sur clé USB et nettoie l\'espace de stockage accessible</string>
+    <string name="btn_choose_usb">1. Choisir la clé USB</string>
+    <string name="btn_backup">2. Lancer la sauvegarde</string>
+    <string name="btn_scan_clean">Analyser l\'espace utilisé</string>
+    <string name="btn_clean">Nettoyer les fichiers inutiles</string>
+    <string name="no_usb_selected">Aucune clé USB sélectionnée</string>
+    <string name="usb_selected_prefix">Destination USB : </string>
+</resources>
