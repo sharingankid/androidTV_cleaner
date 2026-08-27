@@ -1,18 +1,13 @@
 package com.kevin.tvcleanerbackup.ui
 
-import android.Manifest
-import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
+import com.kevin.tvcleanerbackup.R
+import com.kevin.tvcleanerbackup.core.RootManager
 import com.kevin.tvcleanerbackup.core.StorageCleaner
 import com.kevin.tvcleanerbackup.core.UsbBackupManager
 import com.kevin.tvcleanerbackup.databinding.ActivityMainBinding
@@ -34,13 +29,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> onUsbTreeSelected(uri) }
 
-    private val requestLegacyStoragePermission = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { reportStoragePermissionState() }
-
-    private val requestManageStoragePermission = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { reportStoragePermissionState() }
+    private var rootAvailable = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,55 +43,39 @@ class MainActivity : AppCompatActivity() {
         binding.btnBackup.setOnClickListener { startBackup() }
         binding.btnScan.setOnClickListener { scanJunk() }
         binding.btnClean.setOnClickListener { cleanJunk() }
-
-        ensureStoragePermission()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // L'octroi de MANAGE_EXTERNAL_STORAGE se fait dans un écran Paramètres
-        // externe : on ne le sait qu'au retour sur l'activité, pas via un callback.
-        reportStoragePermissionState()
-    }
-
-    // ---------- Permissions ----------
-
-    private fun hasStoragePermission(): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+ : le stockage cloisonné s'applique quel que soit
-            // requestLegacyExternalStorage (qui n'a d'effet que sur Android 10).
-            // Les permissions média granulaires ne couvrent ni les fichiers
-            // résiduels non-média, ni le droit de les supprimer : il faut l'accès
-            // complet "gestion de tous les fichiers".
-            Environment.isExternalStorageManager()
-        } else {
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                .all { ActivityCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED }
+        binding.btnRootTools.setOnClickListener {
+            startActivity(Intent(this, RootToolsActivity::class.java))
         }
 
-    private fun ensureStoragePermission() {
-        if (hasStoragePermission()) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                Uri.parse("package:$packageName")
-            )
-            try {
-                requestManageStoragePermission.launch(intent)
-            } catch (e: ActivityNotFoundException) {
-                requestManageStoragePermission.launch(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
+        checkRootAccess()
+    }
+
+    // ---------- Accès root ----------
+
+    private fun checkRootAccess() {
+        setFunctionalControlsEnabled(false)
+        binding.rootStatusText.text = getString(R.string.no_root_title)
+        lifecycleScope.launch {
+            rootAvailable = withContext(Dispatchers.IO) { RootManager.hasRoot() }
+            if (rootAvailable) {
+                binding.rootStatusText.text = getString(R.string.root_status_ok)
+                binding.rootStatusText.setTextColor(getColor(R.color.success))
+                setFunctionalControlsEnabled(true)
+                log(getString(R.string.root_status_ok))
+            } else {
+                binding.rootStatusText.text = getString(R.string.no_root_title)
+                binding.rootStatusText.setTextColor(getColor(R.color.danger))
+                log(getString(R.string.no_root_message))
             }
-        } else {
-            requestLegacyStoragePermission.launch(
-                arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            )
         }
     }
 
-    private fun reportStoragePermissionState() {
-        if (hasStoragePermission()) {
-            log("Autorisation de stockage accordée")
-        }
+    private fun setFunctionalControlsEnabled(enabled: Boolean) {
+        binding.btnChooseUsb.isEnabled = enabled
+        binding.btnBackup.isEnabled = enabled && usbTreeUri != null
+        binding.btnScan.isEnabled = enabled
+        binding.btnClean.isEnabled = enabled && pendingJunkItems.isNotEmpty()
+        binding.btnRootTools.isEnabled = enabled
     }
 
     // ---------- Sauvegarde USB ----------
@@ -124,11 +97,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBackup() {
         val destination = usbTreeUri ?: return
-        if (!hasStoragePermission()) {
-            ensureStoragePermission()
-            log("Autorisation de stockage requise avant la sauvegarde")
-            return
-        }
+        if (!rootAvailable) return
 
         setBackupControlsEnabled(false)
         binding.backupProgress.visibility = android.view.View.VISIBLE
@@ -169,11 +138,7 @@ class MainActivity : AppCompatActivity() {
     // ---------- Nettoyage ----------
 
     private fun scanJunk() {
-        if (!hasStoragePermission()) {
-            ensureStoragePermission()
-            log("Autorisation de stockage requise avant l'analyse")
-            return
-        }
+        if (!rootAvailable) return
         binding.cleanStatusText.text = "Analyse en cours…"
         binding.btnClean.isEnabled = false
         log("Analyse du stockage…")

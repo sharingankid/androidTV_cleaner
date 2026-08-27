@@ -2,14 +2,13 @@ package com.kevin.tvcleanerbackup.core
 
 import android.content.Context
 import android.os.Environment
+import com.topjohnwu.superuser.io.SuFile
 import java.io.File
 
 /**
- * Nettoyage sans root : Android limite une appli tierce à son propre cache et
- * aux fichiers qu'elle peut réellement lire dans le stockage partagé.
- * Impossible ici de vider le cache d'une AUTRE application ou de fichiers
- * système protégés (cela nécessite soit le rôle "gestionnaire de stockage"
- * réservé aux apps système, soit un accès root).
+ * Nettoyage via shell root : contourne le stockage cloisonné pour lire/
+ * supprimer des fichiers dans le stockage partagé, y compris des résidus
+ * appartenant à d'autres applications (impossible sans root).
  */
 class StorageCleaner(private val context: Context) {
 
@@ -26,7 +25,7 @@ class StorageCleaner(private val context: Context) {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        ).filter { it.exists() }
+        ).map { SuFile(it.absolutePath) as File }.filter { it.exists() }
     }
 
     /** Taille actuelle du cache propre à cette application (toujours nettoyable). */

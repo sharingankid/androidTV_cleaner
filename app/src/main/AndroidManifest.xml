@@ -6,17 +6,9 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="true" />
 
-    <!-- Android 9 et moins (pas de stockage cloisonné) : permissions runtime classiques -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="29" />
-
-    <!-- Android 11+ : accès complet nécessaire pour scanner/supprimer les fichiers
-         résiduels (.tmp/.log/.bak…) et sauvegarder Documents, hors du périmètre
-         des permissions média granulaires. Accordée manuellement dans les Paramètres. -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
+    <!-- Build réservée aux appareils rootés : tous les accès fichiers passent par
+         un shell root (su), qui contourne le stockage cloisonné sans qu'aucune
+         permission de stockage (runtime ou MANAGE_EXTERNAL_STORAGE) soit requise. -->
 
     <application
         android:allowBackup="true"
@@ -24,7 +16,6 @@
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.TVCleanerBackup"
-        android:requestLegacyExternalStorage="true"
         tools:targetApi="34">
 
         <activity
@@ -38,5 +29,11 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.RootToolsActivity"
+            android:exported="false"
+            android:screenOrientation="landscape"
+            android:theme="@style/Theme.TVCleanerBackup" />
     </application>
 </manifest>

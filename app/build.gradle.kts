@@ -9,7 +9,10 @@ android {
 
     defaultConfig {
         applicationId = "com.kevin.tvcleanerbackup"
-        minSdk = 21
+        // Bump vs. la branche main (21) : ApplicationInfo.dataDir (utilisé pour
+        // localiser le cache des autres apps) n'existe qu'à partir de l'API 24,
+        // et un appareil rooté ciblé par cette build tourne réalistement dessus.
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -45,5 +48,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.4")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // Accès root (build réservée aux appareils rootés)
+    implementation("com.github.topjohnwu.libsu:core:6.0.0")
+    implementation("com.github.topjohnwu.libsu:io:6.0.0")
 }

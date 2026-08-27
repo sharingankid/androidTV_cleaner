@@ -8,4 +8,19 @@
     <string name="btn_clean">Nettoyer les fichiers inutiles</string>
     <string name="no_usb_selected">Aucune clé USB sélectionnée</string>
     <string name="usb_selected_prefix">Destination USB : </string>
+
+    <string name="no_root_title">Accès root requis</string>
+    <string name="no_root_message">Cette version de l\'application nécessite un appareil rooté (Magisk ou équivalent). Aucun accès root n\'a été détecté : les fonctions de sauvegarde et de nettoyage restent désactivées.</string>
+    <string name="btn_root_tools">Outils avancés (root)</string>
+    <string name="root_status_ok">Accès root détecté</string>
+
+    <string name="title_root_tools">Outils avancés (root)</string>
+    <string name="subtitle_root_tools">Actions impossibles sans root : cache d\'autres applications et désinstallation d\'apps préinstallées. Chaque suppression est confirmée avant exécution.</string>
+    <string name="section_app_cache">Cache des autres applications</string>
+    <string name="section_bloatware">Applications désinstallables</string>
+    <string name="no_scan_done">Aucune analyse effectuée</string>
+    <string name="btn_scan_app_cache">Analyser</string>
+    <string name="btn_clean_app_cache">Vider la sélection</string>
+    <string name="btn_scan_bloatware">Analyser</string>
+    <string name="btn_uninstall">Désinstaller</string>
 </resources>

@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import androidx.documentfile.provider.DocumentFile
+import com.topjohnwu.superuser.io.SuFile
+import com.topjohnwu.superuser.io.SuFileInputStream
 import kotlinx.coroutines.isActive
 import org.json.JSONObject
 import java.io.File
@@ -13,9 +15,8 @@ import kotlin.coroutines.coroutineContext
 /**
  * Sauvegarde vers une clé USB via Storage Access Framework.
  *
- * Sans root, une appli tierce ne peut pas lire les données internes des
- * autres applications ni les fichiers systèmes protégés : on sauvegarde donc
- * ce qui est réellement accessible en lecture sur un Android TV standard :
+ * La lecture des sources passe par un shell root (SuFile), qui contourne le
+ * stockage cloisonné : on sauvegarde donc
  * - les dossiers de stockage partagé (Téléchargements, DCIM, Images, Films, Musique, Documents)
  * - les données propres à cette application (préférences, fichiers internes)
  * - un instantané des informations système (modèle, version Android, apps installées)
@@ -38,7 +39,7 @@ class UsbBackupManager(private val context: Context) {
             "Films" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
             "Musique" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
             "Documents" to Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-        )
+        ).map { (label, dir) -> label to (dir?.let { SuFile(it.absolutePath) as File }) }
     }
 
     /** Calcule le nombre total de fichiers et d'octets à copier, pour la barre de progression. */
@@ -159,7 +160,9 @@ class UsbBackupManager(private val context: Context) {
         destParent.findFile(source.name)?.delete()
         val destFile = destParent.createFile(guessMime(source.name), source.name) ?: return
         context.contentResolver.openOutputStream(destFile.uri)?.use { out ->
-            source.inputStream().use { input -> input.copyTo(out) }
+            // SuFileInputStream (et non File.inputStream()) : lit via le shell root les
+            // fichiers non accessibles au processus de l'appli sur stockage cloisonné.
+            SuFileInputStream.open(source).use { input -> input.copyTo(out) }
         }
     }
 
